@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  DRIVER
+  ADMIN
+}
+
+enum ShipmentStatus {
+  DRAFT
+  CONFIRMED
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  refreshTokenVersion Int @default(0)
+  role         Role     @default(CUSTOMER)
+  name         String
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  driverProfile DriverProfile?
+  shipments     Shipment[]     @relation("CustomerShipments")
+
+  @@index([email])
+  @@index([role])
+}
+
+model DriverProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  vehicleType   String
+  licenseNumber String
+  isAvailable   Boolean  @default(true)
+  currentLat    Float?
+  currentLng    Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User       @relation(fields: [userId], references: [id])
+  shipments     Shipment[] @relation("DriverShipments")
+
+  @@index([userId])
+}
+
+model Shipment {
+  id             String         @id @default(uuid())
+  customerId     String
+  driverId       String?
+  pickupAddress  String
+  dropoffAddress String
+  pickupLat      Float?
+  pickupLng      Float?
+  dropoffLat     Float?
+  dropoffLng     Float?
+  status         ShipmentStatus @default(DRAFT)
+  price          Float
+  cargoDetails   String
+  cargoWeight    Float
+  truckType      String
+  quoteExpiresAt DateTime?
+  distanceKm     Float?
+  estimatedTimeMins Int?
+  pickupCode     String?
+  deliveryCode   String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  customer       User           @relation("CustomerShipments", fields: [customerId], references: [id])
+  driver         DriverProfile? @relation("DriverShipments", fields: [driverId], references: [id])
+  documents      Document[]
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([status])
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  shipmentId String
+  url        String
+  type       String
+  createdAt  DateTime @default(now())
+
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+}

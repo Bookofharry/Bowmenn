@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: #ffffff;
+  color: #171717;
+}
+
+/* Hide scrollbar universally for a cleaner look */
+html, body {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+html::-webkit-scrollbar, body::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes tilt-rock {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(12deg); }
+}
+
+.animate-tilt-rock {
+  animation: tilt-rock 0.5s ease-in-out infinite;
+}
+
+.group:hover .animate-tilt-rock {
+  animation-play-state: paused;
+}
