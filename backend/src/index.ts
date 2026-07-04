@@ -25,6 +25,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 // --------------- Health Check ---------------
+app.get("/health", (_req, res) => {
+  res.status(200).send("OK");
+});
+
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
