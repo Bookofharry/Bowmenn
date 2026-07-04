@@ -53,9 +53,45 @@ export default function AdminShipmentsPage() {
         {sorted.length === 0 ? (
           <EmptyState title="No shipments found" description={filter === "ALL" ? "No shipments exist on the platform yet." : `No shipments found with status ${filter.replace("_", " ")}.`} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
+          <>
+            {/* Mobile Cards (Visible only on < md) */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {sorted.map((s) => (
+                <div 
+                  key={s.id}
+                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex flex-col gap-3"
+                  onClick={() => router.push(`/admin/shipments/${s.id}`)}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-medium text-gray-900">{s.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-sm text-gray-500">Cust: {s.customer?.name || "Unknown"}</p>
+                    </div>
+                    <Badge status={s.status} />
+                  </div>
+                  
+                  <div className="text-sm text-gray-900">
+                    <div className="whitespace-normal break-words font-medium">{s.pickupAddress}</div>
+                    <div className="text-gray-500 text-xs whitespace-normal break-words mt-1">to {s.dropoffAddress}</div>
+                  </div>
+                  
+                  <div className="text-sm flex flex-wrap gap-2 text-gray-600">
+                    <span>Driver: {s.driver?.user?.name || "Unassigned"}</span>
+                    <span>•</span>
+                    <span>{s.truckType}</span>
+                  </div>
+
+                  <div className="text-xs text-gray-400 mt-1">
+                    {new Date(s.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (Visible only on md and up) */}
+            <div className="hidden md:block overflow-x-hidden">
+              <table className="w-full text-left text-sm whitespace-normal">
+                <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-4 font-medium">Shipment ID</th>
                   <th className="px-6 py-4 font-medium">Customer</th>
@@ -87,8 +123,8 @@ export default function AdminShipmentsPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-gray-900 truncate max-w-[150px]">{s.pickupAddress}</div>
-                      <div className="text-gray-500 text-xs truncate max-w-[150px]">to {s.dropoffAddress}</div>
+                      <div className="text-gray-900 whitespace-normal break-words">{s.pickupAddress}</div>
+                      <div className="text-gray-500 text-xs whitespace-normal break-words mt-1">to {s.dropoffAddress}</div>
                     </td>
                     <td className="px-6 py-4 text-gray-500">
                       {s.truckType}
@@ -101,9 +137,10 @@ export default function AdminShipmentsPage() {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -62,9 +62,50 @@ export default function CustomerShipmentsPage() {
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
+        <>
+          {/* Mobile Cards (Visible only on < md) */}
+          <div className="md:hidden space-y-4">
+            {shipments.map((s) => (
+              <div key={s.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-start justify-between mb-3 gap-3">
+                  <div>
+                    <span className="font-medium text-gray-900">#{s.id.split("-")[0].toUpperCase()}</span>
+                    <p className="text-xs text-gray-500 mt-0.5">{format(new Date(s.createdAt), "MMM d, yyyy")}</p>
+                  </div>
+                  <span className={`inline-flex text-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
+                    ${s.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' : ''}
+                    ${s.status === 'ASSIGNED' ? 'bg-indigo-100 text-indigo-800' : ''}
+                    ${s.status === 'PICKED_UP' ? 'bg-yellow-100 text-yellow-800' : ''}
+                    ${s.status === 'IN_TRANSIT' ? 'bg-orange-100 text-orange-800' : ''}
+                    ${s.status === 'DELIVERED' ? 'bg-green-100 text-green-800' : ''}
+                    ${s.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' : ''}
+                  `}>
+                    {s.status.replace("_", " ").toLowerCase()}
+                  </span>
+                </div>
+                
+                <div className="text-sm text-gray-900 mb-3">
+                  <div className="whitespace-normal break-words font-medium">↑ {s.pickupAddress}</div>
+                  <div className="text-gray-500 mt-1 whitespace-normal break-words">↓ {s.dropoffAddress}</div>
+                </div>
+
+                <div className="text-sm text-gray-700 mb-3 whitespace-normal break-words bg-gray-50 p-2 rounded">
+                  {s.cargoDetails}
+                </div>
+                
+                <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                  <span className="font-semibold text-gray-900">₦{s.price.toLocaleString()}</span>
+                  <Link href={`/customer/shipments/${s.id}`}>
+                    <Button variant="secondary" size="sm">View Details</Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table (Visible only on md and up) */}
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm text-left whitespace-normal">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-4">ID / Date</th>
@@ -79,22 +120,22 @@ export default function CustomerShipmentsPage() {
                 {shipments.map((s) => (
                   <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 truncate w-24" title={s.id}>
+                      <div className="font-medium text-gray-900 break-words">
                         {s.id.split("-")[0].toUpperCase()}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {format(new Date(s.createdAt), "MMM d, yyyy")}
                       </div>
                     </td>
-                    <td className="px-6 py-4 max-w-[200px]">
-                      <div className="truncate font-medium text-gray-900" title={s.pickupAddress}>
-                        ↑ {s.pickupAddress.split(",")[0]}
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900 whitespace-normal break-words">
+                        ↑ {s.pickupAddress}
                       </div>
-                      <div className="truncate text-gray-500 mt-1" title={s.dropoffAddress}>
-                        ↓ {s.dropoffAddress.split(",")[0]}
+                      <div className="text-gray-500 mt-1 whitespace-normal break-words">
+                        ↓ {s.dropoffAddress}
                       </div>
                     </td>
-                    <td className="px-6 py-4 truncate max-w-[150px]" title={s.cargoDetails}>
+                    <td className="px-6 py-4 whitespace-normal break-words">
                       {s.cargoDetails}
                     </td>
                     <td className="px-6 py-4">
@@ -122,7 +163,7 @@ export default function CustomerShipmentsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

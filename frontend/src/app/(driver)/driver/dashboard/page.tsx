@@ -89,13 +89,13 @@ export default function DriverDashboard() {
           <p className="text-sm text-amber-700 mb-4">An admin has assigned you a new job. Please review and accept it.</p>
           <div className="space-y-4">
             {offeredJobs.map(job => (
-              <div key={job.id} className="bg-white rounded-lg p-4 border border-amber-100 flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">{job.pickupAddress} <span className="text-gray-400 font-normal mx-2">→</span> {job.dropoffAddress}</p>
+              <div key={job.id} className="bg-white rounded-lg p-4 border border-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900 whitespace-normal break-words">{job.pickupAddress} <span className="text-gray-400 font-normal mx-1">→</span> {job.dropoffAddress}</p>
                   <p className="text-sm text-gray-500 mt-1">{job.cargoDetails} · {job.cargoWeight}kg</p>
                 </div>
-                <Link href={`/driver/jobs/${job.id}`}>
-                  <Button variant="primary">Review Job</Button>
+                <Link href={`/driver/jobs/${job.id}`} className="w-full sm:w-auto">
+                  <Button variant="primary" className="w-full">Review Job</Button>
                 </Link>
               </div>
             ))}
@@ -110,18 +110,18 @@ export default function DriverDashboard() {
             <h2 className="text-lg font-semibold text-gray-900">Active Job</h2>
             <Badge status={activeJob.status} />
           </div>
-          <div className="space-y-2 text-sm mb-4">
-            <div className="flex gap-2">
-              <span className="text-gray-500 w-16">Pickup</span>
-              <span className="text-gray-900 font-medium">{activeJob.pickupAddress}</span>
+          <div className="space-y-3 text-sm mb-5">
+            <div className="flex flex-col sm:flex-row sm:gap-2">
+              <span className="text-gray-500 sm:w-16 flex-shrink-0">Pickup</span>
+              <span className="text-gray-900 font-medium whitespace-normal break-words">{activeJob.pickupAddress}</span>
             </div>
-            <div className="flex gap-2">
-              <span className="text-gray-500 w-16">Dropoff</span>
-              <span className="text-gray-900 font-medium">{activeJob.dropoffAddress}</span>
+            <div className="flex flex-col sm:flex-row sm:gap-2">
+              <span className="text-gray-500 sm:w-16 flex-shrink-0">Dropoff</span>
+              <span className="text-gray-900 font-medium whitespace-normal break-words">{activeJob.dropoffAddress}</span>
             </div>
-            <div className="flex gap-2">
-              <span className="text-gray-500 w-16">Cargo</span>
-              <span className="text-gray-900">{activeJob.cargoDetails} · {activeJob.cargoWeight}kg</span>
+            <div className="flex flex-col sm:flex-row sm:gap-2">
+              <span className="text-gray-500 sm:w-16 flex-shrink-0">Cargo</span>
+              <span className="text-gray-900 whitespace-normal break-words">{activeJob.cargoDetails} · {activeJob.cargoWeight}kg</span>
             </div>
           </div>
           <Link href={`/driver/jobs/${activeJob.id}`}>

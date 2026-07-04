@@ -168,14 +168,14 @@ export default function DriverJobDetailPage() {
             <div className="w-0.5 h-8 bg-gray-200" />
             <div className="w-3 h-3 rounded-full bg-red-500" />
           </div>
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 space-y-4 min-w-0">
             <div>
               <p className="text-xs text-gray-500">Pickup</p>
-              <p className="text-sm font-medium text-gray-900">{shipment.pickupAddress}</p>
+              <p className="text-sm font-medium text-gray-900 whitespace-normal break-words">{shipment.pickupAddress}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Delivery</p>
-              <p className="text-sm font-medium text-gray-900">{shipment.dropoffAddress}</p>
+              <p className="text-sm font-medium text-gray-900 whitespace-normal break-words">{shipment.dropoffAddress}</p>
             </div>
           </div>
         </div>
@@ -188,10 +188,10 @@ export default function DriverJobDetailPage() {
       {/* Cargo card */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
         <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Cargo</h2>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div>
             <p className="text-gray-500">Description</p>
-            <p className="text-gray-900 font-medium">{shipment.cargoDetails}</p>
+            <p className="text-gray-900 font-medium whitespace-normal break-words">{shipment.cargoDetails}</p>
           </div>
           <div>
             <p className="text-gray-500">Weight</p>
@@ -208,13 +208,13 @@ export default function DriverJobDetailPage() {
       {shipment.customer && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Customer</h2>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm flex-shrink-0">
               {shipment.customer.name?.charAt(0).toUpperCase()}
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">{shipment.customer.name}</p>
-              <p className="text-xs text-gray-500">{shipment.customer.phone || shipment.customer.email}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-900 whitespace-normal break-words">{shipment.customer.name}</p>
+              <p className="text-xs text-gray-500 whitespace-normal break-words">{shipment.customer.phone || shipment.customer.email}</p>
             </div>
           </div>
         </div>
@@ -293,19 +293,19 @@ export default function DriverJobDetailPage() {
               <p className="text-sm text-amber-800 font-medium mb-3">
                 Enter the 4-digit Delivery Code provided by the receiver to finalize this job.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   maxLength={4}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                   placeholder="0000"
-                  className="flex-1 rounded-lg border-2 border-amber-300 focus:ring-amber-500 focus:border-amber-500 text-center tracking-widest font-mono text-lg py-2"
+                  className="w-full sm:flex-1 rounded-lg border-2 border-amber-300 focus:ring-amber-500 focus:border-amber-500 text-center tracking-widest font-mono text-lg py-2"
                 />
                 <Button
                   onClick={() => handleStatusUpdate(ShipmentStatus.COMPLETED)}
                   isLoading={updating}
-                  className="px-6"
+                  className="w-full sm:w-auto px-6"
                 >
                   Verify
                 </Button>
@@ -345,19 +345,19 @@ export default function DriverJobDetailPage() {
               <p className="text-sm text-amber-800 font-medium mb-3">
                 Enter the 4-digit Pickup Code provided by the shipper to start transit.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   maxLength={4}
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                   placeholder="0000"
-                  className="flex-1 rounded-lg border-2 border-amber-300 focus:ring-amber-500 focus:border-amber-500 text-center tracking-widest font-mono text-lg py-2"
+                  className="w-full sm:flex-1 rounded-lg border-2 border-amber-300 focus:ring-amber-500 focus:border-amber-500 text-center tracking-widest font-mono text-lg py-2"
                 />
                 <Button
                   onClick={() => handleStatusUpdate(ShipmentStatus.PICKED_UP)}
                   isLoading={updating}
-                  className="px-6"
+                  className="w-full sm:w-auto px-6"
                 >
                   Verify
                 </Button>

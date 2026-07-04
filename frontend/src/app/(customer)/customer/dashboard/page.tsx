@@ -46,7 +46,7 @@ export default function CustomerDashboard() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {[
           { label: "Total Shipments", value: total, color: "bg-blue-50 text-blue-700", iconColor: "text-blue-500" },
           { label: "Active", value: active, color: "bg-amber-50 text-amber-700", iconColor: "text-amber-500" },
@@ -83,17 +83,19 @@ export default function CustomerDashboard() {
               <Link
                 key={s.id}
                 href={`/customer/shipments/${s.id}`}
-                className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors gap-3"
               >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900 whitespace-normal break-words">
                     {s.pickupAddress} → {s.dropoffAddress}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-500 mt-1">
                     {s.id.slice(0, 8).toUpperCase()} · {s.truckType} · {new Date(s.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <Badge status={s.status} />
+                <div>
+                  <Badge status={s.status} />
+                </div>
               </Link>
             ))}
           </div>

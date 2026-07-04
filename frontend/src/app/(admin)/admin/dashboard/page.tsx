@@ -74,8 +74,38 @@ export default function AdminDashboard() {
         {recent.length === 0 ? (
           <EmptyState title="No shipments yet" description="No shipments have been created on the platform." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
+          <>
+            {/* Mobile Cards (Visible only on < md) */}
+            <div className="md:hidden divide-y divide-gray-100">
+              {recent.map((s) => (
+                <div 
+                  key={s.id}
+                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex flex-col gap-3"
+                  onClick={() => router.push(`/admin/shipments/${s.id}`)}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-medium text-gray-900">{s.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-sm text-gray-500">{s.customer?.name || "Unknown"}</p>
+                    </div>
+                    <Badge status={s.status} />
+                  </div>
+                  
+                  <div className="text-sm text-gray-900">
+                    <div className="whitespace-normal break-words font-medium">{s.pickupAddress}</div>
+                    <div className="text-gray-500 text-xs whitespace-normal break-words mt-1">to {s.dropoffAddress}</div>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500 flex items-center justify-between">
+                    <span>{new Date(s.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (Visible only on md and up) */}
+            <div className="hidden md:block overflow-x-hidden">
+              <table className="w-full text-left text-sm whitespace-normal">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
                   <th className="px-6 py-3 font-medium">ID</th>
@@ -99,8 +129,8 @@ export default function AdminDashboard() {
                       {s.customer?.name || "Unknown"}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-gray-900 truncate max-w-[200px]">{s.pickupAddress}</div>
-                      <div className="text-gray-500 text-xs truncate max-w-[200px]">to {s.dropoffAddress}</div>
+                      <div className="text-gray-900 whitespace-normal break-words">{s.pickupAddress}</div>
+                      <div className="text-gray-500 text-xs whitespace-normal break-words mt-1">to {s.dropoffAddress}</div>
                     </td>
                     <td className="px-6 py-4">
                       <Badge status={s.status} />
@@ -112,7 +142,8 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

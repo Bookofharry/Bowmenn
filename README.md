@@ -3,8 +3,8 @@
 Bowmenn is a tech-enabled logistics platform that seamlessly connects shippers with over 1,000 vetted carriers across Nigeria. Built to handle the end-to-end delivery lifecycle, the platform allows customers to instantly book shipments, drivers to accept and fulfill jobs with real-time proof of delivery, and administrators to orchestrate the entire network from a centralized dashboard.
 
 ## Live Demo links
-- **Frontend**: [Vercel URL placeholder]
-- **Backend API**: [Railway URL placeholder]
+- **Frontend**: https://bowmenn.vercel.app
+- **Backend API**: https://bowmen-api-production.up.railway.app
 
 ## Test Credentials
 You can use the following seeded accounts to test the different role-based portals:
