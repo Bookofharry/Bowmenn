@@ -54,8 +54,8 @@ export default function AdminShipmentDetailPage() {
       await api.patch(`/api/admin/shipments/${id}/assign`, { driverId: selectedDriver });
       toast.success("Driver assigned successfully");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to assign driver");
+    } catch (err: unknown) {
+      toast.error((err as any).response?.data?.message || "Failed to assign driver");
     }
     setAssigning(false);
   }

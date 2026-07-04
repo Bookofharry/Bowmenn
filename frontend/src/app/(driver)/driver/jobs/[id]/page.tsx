@@ -75,8 +75,8 @@ export default function DriverJobDetailPage() {
         // Refresh to show completion state
         fetchData();
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to update status");
+    } catch (err: unknown) {
+      toast.error((err as any).response?.data?.message || "Failed to update status");
     }
     setUpdating(false);
   }
@@ -88,8 +88,8 @@ export default function DriverJobDetailPage() {
       setShipment(data.shipment);
       toast.success("Job accepted successfully");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to accept job");
+    } catch (err: unknown) {
+      toast.error((err as any).response?.data?.message || "Failed to accept job");
     }
     setUpdating(false);
   }
@@ -112,8 +112,8 @@ export default function DriverJobDetailPage() {
       setPodUploaded(true);
       setDocuments((prev) => [...prev, { id: data.id, url: data.url, type: "POD_PHOTO", shipmentId: id, createdAt: new Date().toISOString() }]);
       toast.success("POD uploaded successfully");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to upload POD");
+    } catch (err: unknown) {
+      toast.error((err as any).response?.data?.message || "Failed to upload POD");
     }
     setUploading(false);
   }
@@ -124,8 +124,8 @@ export default function DriverJobDetailPage() {
       await api.post(`/api/shipments/${id}/reject`);
       toast.success("Job rejected successfully");
       router.push("/driver/jobs/available");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to reject job");
+    } catch (err: unknown) {
+      toast.error((err as any).response?.data?.message || "Failed to reject job");
       setRejecting(false);
     }
   }

@@ -73,7 +73,7 @@ export default function BookShipmentPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await api.post("/api/shipments/quote", {
+      await api.post("/api/shipments/quote", {
         pickupLat: form.pickupLat,
         pickupLng: form.pickupLng,
         dropoffLat: form.dropoffLat,
@@ -82,8 +82,8 @@ export default function BookShipmentPage() {
       });
       setQuote(res.data.quote);
       setStep(3);
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to generate quote.");
+    } catch (err: unknown) {
+      setError((err as any).response?.data?.message || "Failed to generate quote.");
       toast.error("Failed to generate quote.");
     } finally {
       setLoading(false);
@@ -114,7 +114,7 @@ export default function BookShipmentPage() {
       setLoading(true);
       try {
         // Create CONFIRMED shipment
-        const res = await api.post("/api/shipments", {
+        await api.post("/api/shipments", {
           ...form,
           cargoWeight: parseFloat(form.cargoWeight),
           price: quote?.totalAmount || 0,
@@ -125,8 +125,8 @@ export default function BookShipmentPage() {
         
         toast.success("Shipment booked successfully!");
         router.push("/customer/shipments");
-      } catch (err: any) {
-        const msg = err.response?.data?.message || "Failed to create shipment";
+      } catch (err: unknown) {
+        const msg = (err as any).response?.data?.message || "Failed to create shipment";
         setError(msg);
         toast.error(msg);
       } finally {

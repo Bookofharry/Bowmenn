@@ -34,8 +34,8 @@ export default function CreateDriverPage() {
       await api.post("/api/admin/users/drivers", form);
       toast.success("Driver account created successfully");
       router.push("/admin/drivers");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to create driver");
+    } catch (err: unknown) {
+      toast.error((err as any).response?.data?.message || "Failed to create driver");
     } finally {
       setLoading(false);
     }

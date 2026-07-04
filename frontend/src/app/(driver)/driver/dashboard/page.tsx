@@ -42,8 +42,8 @@ export default function DriverDashboard() {
       const { data } = await api.patch("/api/driver/availability", { isAvailable: !isAvailable });
       setIsAvailable(data.isAvailable);
       toast.success(data.isAvailable ? "You are now Available" : "You are now Offline");
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to toggle availability");
+    } catch (err: unknown) {
+      toast.error((err as any).response?.data?.message || "Failed to toggle availability");
     }
     setToggling(false);
   }
