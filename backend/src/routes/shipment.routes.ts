@@ -1,17 +1,17 @@
 import { Router } from "express";
 import { authenticate, authorize } from "../middlewares/auth";
+import { validate } from "../middlewares/validate";
+import { quoteRequestSchema, createShipmentSchema, updateStatusSchema } from "../schemas";
 import * as shipmentCtrl from "../controllers/shipment.controller";
 
 const router = Router();
 
-// Public routes
-router.post("/quote", shipmentCtrl.quote);
-
 // All shipment routes require authentication
 router.use(authenticate);
 
-// Customer routes
-router.post("/", authorize("CUSTOMER"), shipmentCtrl.create);
+// Customer routes — quotes are persisted per customer, so quoting requires login
+router.post("/quote", authorize("CUSTOMER"), validate(quoteRequestSchema), shipmentCtrl.quote);
+router.post("/", authorize("CUSTOMER"), validate(createShipmentSchema), shipmentCtrl.create);
 router.get("/", authorize("CUSTOMER"), shipmentCtrl.getMyShipments);
 
 // Driver routes (must be before /:id to avoid route conflicts)
@@ -27,6 +27,6 @@ router.patch("/:id/accept", authorize("DRIVER"), shipmentCtrl.accept);
 router.post("/:id/reject", authorize("DRIVER"), shipmentCtrl.reject);
 
 // Driver + Admin status update
-router.patch("/:id/status", authorize("DRIVER", "ADMIN"), shipmentCtrl.updateStatus);
+router.patch("/:id/status", authorize("DRIVER", "ADMIN"), validate(updateStatusSchema), shipmentCtrl.updateStatus);
 
 export default router;

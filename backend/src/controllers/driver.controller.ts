@@ -9,11 +9,6 @@ export async function updateAvailability(req: Request, res: Response, next: Next
   try {
     const { isAvailable } = req.body;
 
-    if (typeof isAvailable !== "boolean") {
-      res.status(400).json({ success: false, message: "isAvailable (boolean) is required" });
-      return;
-    }
-
     const profile = await prisma.driverProfile.findUnique({
       where: { userId: req.user!.userId },
     });
@@ -42,14 +37,9 @@ export async function updateLocation(req: Request, res: Response, next: NextFunc
   try {
     const { lat, lng } = req.body;
 
-    if (lat == null || lng == null) {
-      res.status(400).json({ success: false, message: "lat and lng are required" });
-      return;
-    }
-
     await prisma.driverProfile.update({
       where: { userId: req.user!.userId },
-      data: { currentLat: parseFloat(lat), currentLng: parseFloat(lng) },
+      data: { currentLat: lat, currentLng: lng },
     });
 
     res.json({ success: true, message: "Location updated" });

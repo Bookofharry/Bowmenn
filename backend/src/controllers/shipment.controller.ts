@@ -1,67 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import * as shipmentService from "../services/shipment.service";
-import * as mapsService from "../services/maps.service";
 import * as quoteService from "../services/quote.service";
 
 /**
- * POST /api/shipments/quote — Get instant price quote
+ * POST /api/shipments/quote — Compute and persist an instant price quote.
+ * Body is validated by quoteRequestSchema.
  */
 export async function quote(req: Request, res: Response, next: NextFunction) {
   try {
-    const { pickupLat, pickupLng, dropoffLat, dropoffLng, cargoWeight } = req.body;
-
-    if (!pickupLat || !pickupLng || !dropoffLat || !dropoffLng || cargoWeight == null) {
-      res.status(400).json({
-        success: false,
-        message: "pickupLat, pickupLng, dropoffLat, dropoffLng, and cargoWeight are required for quote",
-      });
-      return;
-    }
-
-    const { distanceMeters, durationSeconds } = await mapsService.getDistanceMatrix(
-      { lat: parseFloat(pickupLat), lng: parseFloat(pickupLng) },
-      { lat: parseFloat(dropoffLat), lng: parseFloat(dropoffLng) }
-    );
-
-    const breakdown = quoteService.calculateQuote(distanceMeters, durationSeconds, parseFloat(cargoWeight));
-
-    res.json({ success: true, quote: breakdown });
+    const quote = await quoteService.createQuote(req.user!.userId, req.body);
+    res.json({ success: true, quote });
   } catch (err) {
     next(err);
   }
 }
 
 /**
- * POST /api/shipments — Customer creates a DRAFT shipment
+ * POST /api/shipments — Customer books a shipment from a persisted quote.
+ * Price/coords/distance come from the quote row, never from the client.
+ * Body is validated by createShipmentSchema.
  */
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
-    const { pickupAddress, dropoffAddress, cargoDetails, cargoWeight, truckType, price, pickupLat, pickupLng, dropoffLat, dropoffLng, distanceKm, estimatedTimeMins, quoteExpiresAt } = req.body;
-
-    if (!pickupAddress || !dropoffAddress || !cargoDetails || cargoWeight == null || !truckType || price == null) {
-      res.status(400).json({
-        success: false,
-        message: "pickupAddress, dropoffAddress, cargoDetails, cargoWeight, truckType, and price are required",
-      });
-      return;
-    }
-
-    const shipment = await shipmentService.createShipment(req.user!.userId, {
-      pickupAddress,
-      dropoffAddress,
-      cargoDetails,
-      cargoWeight: parseFloat(cargoWeight),
-      truckType,
-      price: parseFloat(price),
-      pickupLat: pickupLat ? parseFloat(pickupLat) : undefined,
-      pickupLng: pickupLng ? parseFloat(pickupLng) : undefined,
-      dropoffLat: dropoffLat ? parseFloat(dropoffLat) : undefined,
-      dropoffLng: dropoffLng ? parseFloat(dropoffLng) : undefined,
-      distanceKm: distanceKm ? parseFloat(distanceKm) : undefined,
-      estimatedTimeMins: estimatedTimeMins ? parseInt(estimatedTimeMins) : undefined,
-      quoteExpiresAt: quoteExpiresAt ? new Date(quoteExpiresAt) : undefined,
-    });
-
+    const shipment = await shipmentService.createShipment(req.user!.userId, req.body);
     res.status(201).json({ success: true, shipment });
   } catch (err) {
     next(err);
@@ -81,7 +42,7 @@ export async function getMyShipments(req: Request, res: Response, next: NextFunc
 }
 
 /**
- * GET /api/shipments/available — PENDING shipments for drivers
+ * GET /api/shipments/available — Unclaimed CONFIRMED shipments for drivers
  */
 export async function getAvailable(req: Request, res: Response, next: NextFunction) {
   try {
@@ -125,11 +86,15 @@ export async function getById(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
- * GET /api/shipments/:id/documents — Documents for a shipment
+ * GET /api/shipments/:id/documents — Documents for a shipment (ownership-checked)
  */
 export async function getDocuments(req: Request, res: Response, next: NextFunction) {
   try {
-    const documents = await shipmentService.getShipmentDocuments(req.params.id as string);
+    const documents = await shipmentService.getShipmentDocuments(
+      req.params.id as string,
+      req.user!.userId,
+      req.user!.role
+    );
     res.json({ success: true, documents });
   } catch (err) {
     next(err);
@@ -137,7 +102,7 @@ export async function getDocuments(req: Request, res: Response, next: NextFuncti
 }
 
 /**
- * PATCH /api/shipments/:id/accept — Driver accepts a PENDING shipment
+ * PATCH /api/shipments/:id/accept — Driver accepts a CONFIRMED shipment
  */
 export async function accept(req: Request, res: Response, next: NextFunction) {
   try {
@@ -149,7 +114,7 @@ export async function accept(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
- * POST /api/shipments/:id/reject — Driver rejects an ASSIGNED shipment
+ * POST /api/shipments/:id/reject — Driver rejects a CONFIRMED/ASSIGNED shipment
  */
 export async function reject(req: Request, res: Response, next: NextFunction) {
   try {
@@ -161,15 +126,12 @@ export async function reject(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
- * PATCH /api/shipments/:id/status — Update shipment status (driver or admin)
+ * PATCH /api/shipments/:id/status — Update shipment status (driver or admin).
+ * Body is validated by updateStatusSchema.
  */
 export async function updateStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const { status, code } = req.body;
-    if (!status) {
-      res.status(400).json({ success: false, message: "status is required" });
-      return;
-    }
 
     const shipment = await shipmentService.updateShipmentStatus(
       req.params.id as string,

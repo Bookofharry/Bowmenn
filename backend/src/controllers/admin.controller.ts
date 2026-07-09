@@ -2,45 +2,15 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../utils/prisma";
 import { hashPassword } from "../utils/password";
 import * as shipmentService from "../services/shipment.service";
-import {
-  getPassword,
-  isValidEmail,
-  isValidPassword,
-  normalizeEmail,
-  normalizeName,
-  normalizePhone,
-} from "../utils/authValidation";
 
 /**
  * POST /api/admin/users/drivers
  * Admin-only: creates a user with DRIVER role + DriverProfile.
+ * Body is validated/normalized by createDriverSchema.
  */
 export async function createDriver(req: Request, res: Response, next: NextFunction) {
   try {
-    const email = normalizeEmail(req.body.email);
-    const password = getPassword(req.body.password);
-    const name = normalizeName(req.body.name);
-    const phone = normalizePhone(req.body.phone);
-    const vehicleType = typeof req.body.vehicleType === "string" ? req.body.vehicleType.trim() : "";
-    const licenseNumber = typeof req.body.licenseNumber === "string" ? req.body.licenseNumber.trim() : "";
-
-    if (!email || !password || !name || !vehicleType || !licenseNumber) {
-      res.status(400).json({
-        success: false,
-        message: "email, password, name, vehicleType, and licenseNumber are required",
-      });
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      res.status(400).json({ success: false, message: "Please provide a valid email address" });
-      return;
-    }
-
-    if (!isValidPassword(password)) {
-      res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
-      return;
-    }
+    const { email, password, name, phone, vehicleType, licenseNumber } = req.body;
 
     // Check for existing email
     const existing = await prisma.user.findFirst({
@@ -183,11 +153,6 @@ export async function getAllShipments(req: Request, res: Response, next: NextFun
 export async function assignDriver(req: Request, res: Response, next: NextFunction) {
   try {
     const { driverId } = req.body;
-    if (!driverId) {
-      res.status(400).json({ success: false, message: "driverId is required" });
-      return;
-    }
-
     const shipment = await shipmentService.adminAssignDriver(req.params.id as string, driverId);
     res.json({ success: true, shipment });
   } catch (err) {
@@ -202,11 +167,6 @@ export async function assignDriver(req: Request, res: Response, next: NextFuncti
 export async function adminUpdateStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const { status } = req.body;
-    if (!status) {
-      res.status(400).json({ success: false, message: "status is required" });
-      return;
-    }
-
     const shipment = await shipmentService.updateShipmentStatus(
       req.params.id as string,
       req.user!.userId,

@@ -29,6 +29,7 @@ export default function BookShipmentPage() {
   });
 
   const [quote, setQuote] = useState<{
+    id: string;
     distanceKm: number;
     estimatedTimeMins: number;
     distanceCharge: number;
@@ -73,7 +74,7 @@ export default function BookShipmentPage() {
     setLoading(true);
     setError("");
     try {
-      await api.post("/api/shipments/quote", {
+      const res = await api.post("/api/shipments/quote", {
         pickupLat: form.pickupLat,
         pickupLng: form.pickupLng,
         dropoffLat: form.dropoffLat,
@@ -83,8 +84,9 @@ export default function BookShipmentPage() {
       setQuote(res.data.quote);
       setStep(3);
     } catch (err: unknown) {
-      setError((err as any).response?.data?.message || "Failed to generate quote.");
-      toast.error("Failed to generate quote.");
+      const msg = (err as any).response?.data?.message || "Failed to generate quote.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -105,6 +107,11 @@ export default function BookShipmentPage() {
       return;
     }
     if (step === 3) {
+      if (!quote) {
+        toast.error("Please request a quote first.");
+        setStep(2);
+        return;
+      }
       if (countdown === "Expired") {
         toast.error("Your quote has expired. Please recalculate.");
         setStep(2);
@@ -113,14 +120,14 @@ export default function BookShipmentPage() {
 
       setLoading(true);
       try {
-        // Create CONFIRMED shipment
+        // Create CONFIRMED shipment — price, coords, and weight are taken
+        // server-side from the persisted quote
         await api.post("/api/shipments", {
-          ...form,
-          cargoWeight: parseFloat(form.cargoWeight),
-          price: quote?.totalAmount || 0,
-          quoteExpiresAt: quote?.quoteExpiresAt,
-          distanceKm: quote?.distanceKm,
-          estimatedTimeMins: quote?.estimatedTimeMins,
+          quoteId: quote.id,
+          pickupAddress: form.pickupAddress,
+          dropoffAddress: form.dropoffAddress,
+          cargoDetails: form.cargoDetails,
+          truckType: form.truckType,
         });
         
         toast.success("Shipment booked successfully!");

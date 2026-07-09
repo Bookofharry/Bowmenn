@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { authenticate, authorize } from "../middlewares/auth";
+import { validate } from "../middlewares/validate";
+import { createDriverSchema, assignDriverSchema, updateStatusSchema } from "../schemas";
 import {
   createDriver,
   listUsers,
@@ -17,12 +19,12 @@ router.use(authorize("ADMIN"));
 
 // User management
 router.get("/users", listUsers);
-router.post("/users/drivers", createDriver);
+router.post("/users/drivers", validate(createDriverSchema), createDriver);
 router.get("/users/drivers", listDrivers);
 
 // Shipment management
 router.get("/shipments", getAllShipments);
-router.patch("/shipments/:id/assign", assignDriver);
-router.patch("/shipments/:id/status", adminUpdateStatus);
+router.patch("/shipments/:id/assign", validate(assignDriverSchema), assignDriver);
+router.patch("/shipments/:id/status", validate(updateStatusSchema), adminUpdateStatus);
 
 export default router;

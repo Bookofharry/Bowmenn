@@ -38,6 +38,7 @@ model User {
 
   driverProfile DriverProfile?
   shipments     Shipment[]     @relation("CustomerShipments")
+  quotes        Quote[]        @relation("CustomerQuotes")
 
   @@index([email])
   @@index([role])
@@ -60,10 +61,34 @@ model DriverProfile {
   @@index([userId])
 }
 
+model Quote {
+  id                String   @id @default(uuid())
+  customerId        String
+  pickupLat         Float
+  pickupLng         Float
+  dropoffLat        Float
+  dropoffLng        Float
+  cargoWeight       Float
+  distanceKm        Float
+  estimatedTimeMins Int
+  distanceCharge    Float
+  weightSurcharge   Float
+  fuelLevy          Float
+  totalAmount       Float
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+
+  customer          User      @relation("CustomerQuotes", fields: [customerId], references: [id])
+  shipment          Shipment?
+
+  @@index([customerId])
+}
+
 model Shipment {
   id             String         @id @default(uuid())
   customerId     String
   driverId       String?
+  quoteId        String?        @unique
   pickupAddress  String
   dropoffAddress String
   pickupLat      Float?
@@ -85,6 +110,7 @@ model Shipment {
 
   customer       User           @relation("CustomerShipments", fields: [customerId], references: [id])
   driver         DriverProfile? @relation("DriverShipments", fields: [driverId], references: [id])
+  quote          Quote?         @relation(fields: [quoteId], references: [id])
   documents      Document[]
 
   @@index([customerId])

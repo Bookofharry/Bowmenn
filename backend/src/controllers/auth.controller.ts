@@ -2,14 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../utils/prisma";
 import { hashPassword, comparePassword } from "../utils/password";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../utils/jwt";
-import {
-  getPassword,
-  isValidEmail,
-  isValidPassword,
-  normalizeEmail,
-  normalizeName,
-  normalizePhone,
-} from "../utils/authValidation";
 
 const REFRESH_COOKIE_BASE_OPTIONS = {
   httpOnly: true,
@@ -26,28 +18,11 @@ const REFRESH_COOKIE_OPTIONS = {
 /**
  * POST /api/auth/register
  * Creates a CUSTOMER account. Role is not accepted from body.
+ * Body is validated/normalized by registerSchema.
  */
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
-    const email = normalizeEmail(req.body.email);
-    const password = getPassword(req.body.password);
-    const name = normalizeName(req.body.name);
-    const phone = normalizePhone(req.body.phone);
-
-    if (!email || !password || !name) {
-      res.status(400).json({ success: false, message: "Email, password, and name are required" });
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      res.status(400).json({ success: false, message: "Please provide a valid email address" });
-      return;
-    }
-
-    if (!isValidPassword(password)) {
-      res.status(400).json({ success: false, message: "Password must be at least 6 characters long" });
-      return;
-    }
+    const { email, password, name, phone } = req.body;
 
     // Check if user already exists
     const existing = await prisma.user.findFirst({
@@ -98,21 +73,11 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 /**
  * POST /api/auth/login
  * Authenticates any user role. Returns access token, sets refresh token in httpOnly cookie.
+ * Body is validated/normalized by loginSchema.
  */
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
-    const email = normalizeEmail(req.body.email);
-    const password = getPassword(req.body.password);
-
-    if (!email || !password) {
-      res.status(400).json({ success: false, message: "Email and password are required" });
-      return;
-    }
-
-    if (!isValidEmail(email)) {
-      res.status(400).json({ success: false, message: "Please provide a valid email address" });
-      return;
-    }
+    const { email, password } = req.body;
 
     const user = await prisma.user.findFirst({
       where: {
@@ -156,6 +121,12 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 /**
  * POST /api/auth/refresh
  * Reads refresh token from httpOnly cookie, returns new access token.
+ *
+ * The token version is deliberately NOT rotated here: rotating on every
+ * refresh invalidates the cookie a second tab is holding mid-flight and
+ * force-logs the user out. The version only changes on logout, which still
+ * kills every session at once. The cookie is re-issued to slide the
+ * 30-day expiry window.
  */
 export async function refresh(req: Request, res: Response, next: NextFunction) {
   try {
@@ -168,29 +139,15 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
 
     const payload = verifyRefreshToken(token);
 
-    // Verify user still exists
+    // Verify user still exists and the token hasn't been invalidated by logout
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user || user.refreshTokenVersion !== payload.tokenVersion) {
       res.status(401).json({ success: false, message: "Invalid or expired refresh token" });
       return;
     }
 
-    const refreshedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        refreshTokenVersion: {
-          increment: 1,
-        },
-      },
-      select: {
-        id: true,
-        role: true,
-        refreshTokenVersion: true,
-      },
-    });
-
-    const accessToken = generateAccessToken(refreshedUser.id, refreshedUser.role);
-    const refreshToken = generateRefreshToken(refreshedUser.id, refreshedUser.refreshTokenVersion);
+    const accessToken = generateAccessToken(user.id, user.role);
+    const refreshToken = generateRefreshToken(user.id, user.refreshTokenVersion);
 
     res.cookie("refreshToken", refreshToken, REFRESH_COOKIE_OPTIONS);
 
@@ -202,7 +159,7 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
 
 /**
  * POST /api/auth/logout
- * Clears the refresh token cookie.
+ * Clears the refresh token cookie and invalidates all refresh tokens.
  */
 export async function logout(req: Request, res: Response, next: NextFunction) {
   try {

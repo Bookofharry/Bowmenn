@@ -61,7 +61,7 @@ export default function DriverLayout({ children }: { children: React.ReactNode }
 
           <nav className="flex-1 px-3 py-4 space-y-1">
             {links.map(({ href, label, icon }) => {
-              const active = pathname === href || (href === "/driver/jobs" && pathname.startsWith("/driver/jobs/") && !pathname.includes("available"));
+              const active = pathname === href || (href === "/driver/jobs" && pathname.startsWith("/driver/jobs/"));
               return (
                 <Link
                   key={href}

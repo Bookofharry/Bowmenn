@@ -30,11 +30,31 @@ export async function uploadToCloudinary(
   });
 }
 
-export async function savePOD(shipmentId: string, url: string, type: string) {
-  // Verify shipment exists
+/**
+ * Only the assigned driver may attach POD, and only while the cargo is in
+ * transit — the POD gate for IN_TRANSIT → DELIVERED depends on this.
+ * Call before uploading the file to storage.
+ */
+export async function assertPODUploadAllowed(shipmentId: string, userId: string): Promise<void> {
   const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
   if (!shipment) throw Object.assign(new Error("Shipment not found"), { statusCode: 404 });
 
+  const profile = await prisma.driverProfile.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  if (!profile || shipment.driverId !== profile.id) {
+    throw Object.assign(new Error("You are not assigned to this shipment"), { statusCode: 403 });
+  }
+  if (shipment.status !== "IN_TRANSIT") {
+    throw Object.assign(
+      new Error("Proof of Delivery can only be uploaded while the shipment is in transit"),
+      { statusCode: 400 }
+    );
+  }
+}
+
+export async function savePOD(shipmentId: string, url: string, type: string) {
   return prisma.document.create({
     data: {
       shipmentId,

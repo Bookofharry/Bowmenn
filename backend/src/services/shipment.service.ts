@@ -3,6 +3,10 @@ import { ShipmentStatus } from "@prisma/client";
 
 // ───────── Helpers ─────────
 
+function httpError(message: string, statusCode: number): Error {
+  return Object.assign(new Error(message), { statusCode });
+}
+
 async function getDriverProfileId(userId: string): Promise<string | null> {
   const profile = await prisma.driverProfile.findUnique({
     where: { userId },
@@ -11,25 +15,60 @@ async function getDriverProfileId(userId: string): Promise<string | null> {
   return profile?.id || null;
 }
 
+/**
+ * The pickup/delivery codes are secrets the driver must obtain from the
+ * shipper/receiver in person — they must never appear in driver-facing responses.
+ */
+function stripCodes<T extends { pickupCode?: string | null; deliveryCode?: string | null }>(
+  shipment: T
+): T {
+  return { ...shipment, pickupCode: null, deliveryCode: null };
+}
+
+async function canAccessShipment(
+  shipment: { customerId: string; driverId: string | null; status: ShipmentStatus },
+  userId: string,
+  role: string
+): Promise<boolean> {
+  if (role === "ADMIN") return true;
+  if (role === "CUSTOMER") return shipment.customerId === userId;
+  if (role === "DRIVER") {
+    const profileId = await getDriverProfileId(userId);
+    if (profileId && shipment.driverId === profileId) return true;
+    // Unclaimed CONFIRMED shipments are visible to all drivers (available jobs)
+    return shipment.status === "CONFIRMED" && !shipment.driverId;
+  }
+  return false;
+}
+
 // ───────── Customer Operations ─────────
 
 interface CreateShipmentData {
+  quoteId: string;
   pickupAddress: string;
   dropoffAddress: string;
-  pickupLat?: number;
-  pickupLng?: number;
-  dropoffLat?: number;
-  dropoffLng?: number;
   cargoDetails: string;
-  cargoWeight: number;
   truckType: string;
-  price: number;
-  quoteExpiresAt?: Date;
-  distanceKm?: number;
-  estimatedTimeMins?: number;
 }
 
 export async function createShipment(customerId: string, data: CreateShipmentData) {
+  // Price, coordinates, and distance come from the server-side quote —
+  // never from the client.
+  const quote = await prisma.quote.findUnique({
+    where: { id: data.quoteId },
+    include: { shipment: { select: { id: true } } },
+  });
+
+  if (!quote || quote.customerId !== customerId) {
+    throw httpError("Quote not found. Please request a new quote.", 400);
+  }
+  if (quote.shipment) {
+    throw httpError("This quote has already been used for a shipment.", 400);
+  }
+  if (quote.expiresAt.getTime() <= Date.now()) {
+    throw httpError("Your quote has expired. Please request a new quote.", 400);
+  }
+
   // Generate 4-digit codes
   const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
   const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -37,19 +76,20 @@ export async function createShipment(customerId: string, data: CreateShipmentDat
   return prisma.shipment.create({
     data: {
       customerId,
+      quoteId: quote.id,
       pickupAddress: data.pickupAddress,
       dropoffAddress: data.dropoffAddress,
-      pickupLat: data.pickupLat || 0,
-      pickupLng: data.pickupLng || 0,
-      dropoffLat: data.dropoffLat || 0,
-      dropoffLng: data.dropoffLng || 0,
+      pickupLat: quote.pickupLat,
+      pickupLng: quote.pickupLng,
+      dropoffLat: quote.dropoffLat,
+      dropoffLng: quote.dropoffLng,
       cargoDetails: data.cargoDetails,
-      cargoWeight: data.cargoWeight,
+      cargoWeight: quote.cargoWeight,
       truckType: data.truckType,
-      price: data.price || 0,
-      quoteExpiresAt: data.quoteExpiresAt,
-      distanceKm: data.distanceKm,
-      estimatedTimeMins: data.estimatedTimeMins,
+      price: quote.totalAmount,
+      quoteExpiresAt: quote.expiresAt,
+      distanceKm: quote.distanceKm,
+      estimatedTimeMins: quote.estimatedTimeMins,
       pickupCode,
       deliveryCode,
       status: "CONFIRMED",
@@ -90,41 +130,29 @@ export async function getShipmentById(id: string, userId: string, role: string) 
   });
 
   if (!shipment) return null;
+  if (!(await canAccessShipment(shipment, userId, role))) return null;
 
-  // Admin can see everything
-  if (role === "ADMIN") return shipment;
-
-  // Customer can only see their own
-  if (role === "CUSTOMER" && shipment.customerId === userId) return shipment;
-
-  // Driver can only see shipments assigned to them
-  if (role === "DRIVER") {
-    const profileId = await getDriverProfileId(userId);
-    if (profileId && shipment.driverId === profileId) return shipment;
-    // Drivers can also view CONFIRMED shipments (available jobs)
-    if (shipment.status === "CONFIRMED") return shipment;
-  }
-
-  return null; // Unauthorized
+  return role === "DRIVER" ? stripCodes(shipment) : shipment;
 }
 
 // ───────── Driver Operations ─────────
 
 export async function getAvailableShipments() {
-  return prisma.shipment.findMany({
+  const shipments = await prisma.shipment.findMany({
     where: { status: "CONFIRMED", driverId: null },
     include: {
       customer: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
+  return shipments.map(stripCodes);
 }
 
 export async function getDriverShipments(userId: string) {
   const profileId = await getDriverProfileId(userId);
-  if (!profileId) throw Object.assign(new Error("Driver profile not found"), { statusCode: 404 });
+  if (!profileId) throw httpError("Driver profile not found", 404);
 
-  return prisma.shipment.findMany({
+  const shipments = await prisma.shipment.findMany({
     where: { driverId: profileId },
     include: {
       customer: { select: { id: true, name: true, phone: true } },
@@ -132,43 +160,57 @@ export async function getDriverShipments(userId: string) {
     },
     orderBy: { createdAt: "desc" },
   });
+  return shipments.map(stripCodes);
 }
 
 export async function acceptShipment(shipmentId: string, userId: string) {
   const profileId = await getDriverProfileId(userId);
-  if (!profileId) throw Object.assign(new Error("Driver profile not found"), { statusCode: 404 });
+  if (!profileId) throw httpError("Driver profile not found", 404);
 
-  const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
-  if (!shipment) throw Object.assign(new Error("Shipment not found"), { statusCode: 404 });
-  
-  if (shipment.status !== "CONFIRMED" || (shipment.driverId && shipment.driverId !== profileId)) {
-    throw Object.assign(new Error("Shipment is not available for acceptance"), { statusCode: 400 });
+  // Atomic conditional write so two drivers can't both claim the same job
+  const result = await prisma.shipment.updateMany({
+    where: {
+      id: shipmentId,
+      status: "CONFIRMED",
+      OR: [{ driverId: null }, { driverId: profileId }],
+    },
+    data: { driverId: profileId, status: "ASSIGNED" },
+  });
+
+  if (result.count === 0) {
+    throw httpError("Shipment is no longer available for acceptance", 409);
   }
 
-  return prisma.shipment.update({
+  const shipment = await prisma.shipment.findUnique({
     where: { id: shipmentId },
-    data: { driverId: profileId, status: "ASSIGNED" },
     include: {
       customer: { select: { id: true, name: true, phone: true } },
       driver: { select: { id: true, vehicleType: true, user: { select: { name: true } } } },
     },
   });
+  return shipment ? stripCodes(shipment) : shipment;
 }
 
 export async function rejectShipment(shipmentId: string, userId: string) {
   const profileId = await getDriverProfileId(userId);
-  if (!profileId) throw Object.assign(new Error("Driver profile not found"), { statusCode: 404 });
+  if (!profileId) throw httpError("Driver profile not found", 404);
 
-  const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
-  if (!shipment) throw Object.assign(new Error("Shipment not found"), { statusCode: 404 });
-  if (shipment.status !== "ASSIGNED" || shipment.driverId !== profileId) {
-    throw Object.assign(new Error("Cannot reject: shipment not assigned to you"), { statusCode: 400 });
-  }
-
-  return prisma.shipment.update({
-    where: { id: shipmentId },
+  // CONFIRMED covers admin-assigned jobs the driver hasn't accepted yet
+  const result = await prisma.shipment.updateMany({
+    where: {
+      id: shipmentId,
+      driverId: profileId,
+      status: { in: ["CONFIRMED", "ASSIGNED"] },
+    },
     data: { driverId: null, status: "CONFIRMED" },
   });
+
+  if (result.count === 0) {
+    throw httpError("Cannot reject: shipment not assigned to you", 400);
+  }
+
+  const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
+  return shipment ? stripCodes(shipment) : shipment;
 }
 
 // ───────── Status Transitions ─────────
@@ -191,17 +233,10 @@ export async function updateShipmentStatus(
     where: { id: shipmentId },
     include: { documents: true },
   });
-  if (!shipment) throw Object.assign(new Error("Shipment not found"), { statusCode: 404 });
+  if (!shipment) throw httpError("Shipment not found", 404);
 
-  // ADMIN override: DELIVERED → COMPLETED
+  // ADMIN override: any transition
   if (role === "ADMIN") {
-    if (newStatus === "COMPLETED" && shipment.status === "DELIVERED") {
-      return prisma.shipment.update({
-        where: { id: shipmentId },
-        data: { status: "COMPLETED" },
-      });
-    }
-    // Admin can also force any valid transition
     return prisma.shipment.update({
       where: { id: shipmentId },
       data: { status: newStatus },
@@ -212,42 +247,36 @@ export async function updateShipmentStatus(
   if (role === "DRIVER") {
     const profileId = await getDriverProfileId(userId);
     if (!profileId || shipment.driverId !== profileId) {
-      throw Object.assign(new Error("Shipment not assigned to you"), { statusCode: 403 });
+      throw httpError("Shipment not assigned to you", 403);
     }
 
     const expectedNext = DRIVER_TRANSITIONS[shipment.status];
     if (!expectedNext || expectedNext !== newStatus) {
-      throw Object.assign(
-        new Error(`Invalid transition: cannot go from ${shipment.status} to ${newStatus}`),
-        { statusCode: 400 }
-      );
+      throw httpError(`Invalid transition: cannot go from ${shipment.status} to ${newStatus}`, 400);
     }
 
     // ASSIGNED → PICKED_UP requires pickupCode
     if (newStatus === "PICKED_UP" && shipment.pickupCode) {
       if (!code || code !== shipment.pickupCode) {
-        throw Object.assign(new Error("Invalid Pickup Code. Please ask the shipper for the 4-digit code."), { statusCode: 400 });
+        throw httpError("Invalid Pickup Code. Please ask the shipper for the 4-digit code.", 400);
       }
     }
 
     // IN_TRANSIT → DELIVERED requires POD
     if (shipment.status === "IN_TRANSIT" && newStatus === "DELIVERED") {
       if (shipment.documents.length === 0) {
-        throw Object.assign(
-          new Error("Cannot mark as DELIVERED without uploading Proof of Delivery"),
-          { statusCode: 400 }
-        );
+        throw httpError("Cannot mark as DELIVERED without uploading Proof of Delivery", 400);
       }
     }
 
     // DELIVERED → COMPLETED requires deliveryCode
     if (newStatus === "COMPLETED" && shipment.deliveryCode) {
       if (!code || code !== shipment.deliveryCode) {
-        throw Object.assign(new Error("Invalid Delivery Code. Please ask the receiver for the 4-digit code."), { statusCode: 400 });
+        throw httpError("Invalid Delivery Code. Please ask the receiver for the 4-digit code.", 400);
       }
     }
 
-    return prisma.shipment.update({
+    const updated = await prisma.shipment.update({
       where: { id: shipmentId },
       data: { status: newStatus },
       include: {
@@ -255,9 +284,10 @@ export async function updateShipmentStatus(
         driver: { select: { id: true, user: { select: { name: true } } } },
       },
     });
+    return stripCodes(updated);
   }
 
-  throw Object.assign(new Error("Customers cannot update shipment status"), { statusCode: 403 });
+  throw httpError("Customers cannot update shipment status", 403);
 }
 
 // ───────── Admin Operations ─────────
@@ -275,10 +305,10 @@ export async function getAllShipments() {
 export async function adminAssignDriver(shipmentId: string, driverId: string) {
   // Verify driver profile exists
   const driverProfile = await prisma.driverProfile.findUnique({ where: { id: driverId } });
-  if (!driverProfile) throw Object.assign(new Error("Driver profile not found"), { statusCode: 404 });
+  if (!driverProfile) throw httpError("Driver profile not found", 404);
 
   const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
-  if (!shipment) throw Object.assign(new Error("Shipment not found"), { statusCode: 404 });
+  if (!shipment) throw httpError("Shipment not found", 404);
 
   return prisma.shipment.update({
     where: { id: shipmentId },
@@ -292,9 +322,12 @@ export async function adminAssignDriver(shipmentId: string, driverId: string) {
 
 // ───────── Documents ─────────
 
-export async function getShipmentDocuments(shipmentId: string) {
+export async function getShipmentDocuments(shipmentId: string, userId: string, role: string) {
   const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
-  if (!shipment) throw Object.assign(new Error("Shipment not found"), { statusCode: 404 });
+  if (!shipment) throw httpError("Shipment not found", 404);
+  if (!(await canAccessShipment(shipment, userId, role))) {
+    throw httpError("You do not have access to this shipment's documents", 403);
+  }
 
   return prisma.document.findMany({
     where: { shipmentId },

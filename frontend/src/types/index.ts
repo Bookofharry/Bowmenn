@@ -5,12 +5,15 @@ export enum Role {
 }
 
 export enum ShipmentStatus {
+  DRAFT = "DRAFT",
   CONFIRMED = "CONFIRMED",
   ASSIGNED = "ASSIGNED",
   PICKED_UP = "PICKED_UP",
   IN_TRANSIT = "IN_TRANSIT",
   DELIVERED = "DELIVERED",
   COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  DISPUTED = "DISPUTED",
 }
 
 export interface User {
@@ -56,6 +59,12 @@ export interface Shipment {
   cargoDetails: string;
   cargoWeight: number;
   truckType: string;
+  quoteId?: string | null;
+  quoteExpiresAt?: string | null;
+  distanceKm?: number | null;
+  estimatedTimeMins?: number | null;
+  pickupCode?: string | null;
+  deliveryCode?: string | null;
   createdAt: string;
   updatedAt: string;
   customer?: Partial<User>;

@@ -18,6 +18,8 @@ interface Shipment {
   status: string;
   price: number;
   distanceKm: number;
+  pickupCode?: string | null;
+  deliveryCode?: string | null;
   createdAt: string;
   driver?: {
     user: {

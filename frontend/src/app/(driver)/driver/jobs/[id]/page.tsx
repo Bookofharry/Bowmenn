@@ -123,7 +123,7 @@ export default function DriverJobDetailPage() {
     try {
       await api.post(`/api/shipments/${id}/reject`);
       toast.success("Job rejected successfully");
-      router.push("/driver/jobs/available");
+      router.push("/driver/jobs");
     } catch (err: unknown) {
       toast.error((err as any).response?.data?.message || "Failed to reject job");
       setRejecting(false);

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { uploadToCloudinary, savePOD } from "../services/upload.service";
+import { uploadToCloudinary, savePOD, assertPODUploadAllowed } from "../services/upload.service";
 
 /**
  * POST /api/uploads/pod
@@ -19,6 +19,8 @@ export async function uploadPOD(req: Request, res: Response, next: NextFunction)
       res.status(400).json({ success: false, message: "shipmentId is required" });
       return;
     }
+
+    await assertPODUploadAllowed(shipmentId, req.user!.userId);
 
     const url = await uploadToCloudinary(file.buffer);
     const document = await savePOD(shipmentId, url, type || "POD_PHOTO");
