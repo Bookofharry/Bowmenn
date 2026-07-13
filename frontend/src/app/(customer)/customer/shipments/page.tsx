@@ -40,13 +40,13 @@ export default function CustomerShipmentsPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Shipments</h1>
           <p className="text-sm text-gray-500 mt-1">View and track all your delivery requests.</p>
         </div>
         <Link href="/customer/book">
-          <Button>Book New Shipment</Button>
+          <Button className="w-full sm:w-auto">Book New Shipment</Button>
         </Link>
       </div>
 

@@ -31,11 +31,51 @@ export default function AdminCompletedPage() {
         <p className="text-sm text-gray-500 mt-1">Record of successfully completed shipments</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {shipments.length === 0 ? (
+      {shipments.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <EmptyState title="No completed deliveries" description="Shipments marked as DELIVERED or COMPLETED will appear here." />
-        ) : (
-          <div className="overflow-x-auto">
+        </div>
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-4">
+            {shipments.map((s) => (
+              <div
+                key={s.id}
+                className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50"
+                onClick={() => router.push(`/admin/shipments/${s.id}`)}
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <span className="font-medium text-gray-900">{s.id.slice(0, 8).toUpperCase()}</span>
+                    <p className="text-xs text-gray-500 mt-0.5">{new Date(s.updatedAt).toLocaleDateString()}</p>
+                  </div>
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex-shrink-0">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="text-sm mb-3">
+                  <div className="text-gray-900 whitespace-normal break-words">↑ {s.pickupAddress}</div>
+                  <div className="text-gray-500 mt-1 whitespace-normal break-words">↓ {s.dropoffAddress}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm border-t border-gray-100 pt-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Customer</p>
+                    <p className="text-gray-900 truncate">{s.customer?.name || "Unknown"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Driver</p>
+                    <p className="text-gray-900 truncate">{s.driver?.user?.name || "Unknown"}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <tr>
@@ -82,8 +122,8 @@ export default function AdminCompletedPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

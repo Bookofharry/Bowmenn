@@ -40,11 +40,62 @@ export default function AdminDriversPage() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {drivers.length === 0 ? (
+      {drivers.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <EmptyState title="No drivers found" description="Register your first driver to begin accepting shipments." />
-        ) : (
-          <div className="overflow-x-auto">
+        </div>
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-4">
+            {drivers.map((d) => (
+              <div key={d.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm flex-shrink-0">
+                      {d.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{d.name}</p>
+                      <p className="text-xs text-gray-500 break-all">{d.email}</p>
+                    </div>
+                  </div>
+                  {d.driverProfile?.isAvailable ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 flex-shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Available
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600 flex-shrink-0">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                      Offline
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm border-t border-gray-100 pt-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Phone</p>
+                    <p className="text-gray-900">{d.phone || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Jobs Assigned</p>
+                    <p className="text-gray-900">{(d as any).driverProfile?._count?.shipments || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Vehicle</p>
+                    <p className="text-gray-900">{d.driverProfile?.vehicleType || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">License</p>
+                    <p className="text-gray-900 break-all">{d.driverProfile?.licenseNumber || "—"}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <tr>
@@ -95,8 +146,8 @@ export default function AdminDriversPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

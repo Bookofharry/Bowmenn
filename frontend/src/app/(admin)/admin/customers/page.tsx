@@ -31,11 +31,45 @@ export default function AdminCustomersPage() {
         <p className="text-sm text-gray-500 mt-1">Manage platform shippers and their history</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {customers.length === 0 ? (
+      {customers.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <EmptyState title="No customers found" description="No users have registered as customers yet." />
-        ) : (
-          <div className="overflow-x-auto">
+        </div>
+      ) : (
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-4">
+            {customers.map((c) => (
+              <div key={c.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-sm flex-shrink-0">
+                    {c.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{c.name}</p>
+                    <p className="text-xs text-gray-500 break-all">{c.email}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm border-t border-gray-100 pt-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Phone</p>
+                    <p className="text-gray-900">{c.phone || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Shipments</p>
+                    <p className="text-gray-900">{(c as any)._count?.shipments || 0}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500">Joined</p>
+                    <p className="text-gray-900">{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : "—"}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <tr>
@@ -66,8 +100,8 @@ export default function AdminCustomersPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
